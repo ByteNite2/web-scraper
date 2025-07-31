@@ -1,0 +1,16 @@
+{
+  "name": "scraper-engine",
+  "version": "0.1",
+  "type": "app",
+  "description": "E-commerce web scraping app using Playwright for product demand analysis",
+  "entrypoint": "main.py",
+  "platform": "docker",
+  "platform_config": {
+    "container": "python:3.11-slim",
+    "requirements": "requirements.txt"
+  },
+  "device_requirements": {
+    "min_cpu": 2,
+    "min_memory": 4
+  }
+}

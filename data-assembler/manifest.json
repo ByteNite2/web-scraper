@@ -1,0 +1,15 @@
+{
+  "name": "data-assembler",
+  "version": "0.1",
+  "type": "assembler", 
+  "description": "An assembler engine that combines scraped data from multiple chunks into final output",
+  "entrypoint": "main.py",
+  "platform": "docker",
+  "platform_config": {
+    "container": "python:latest"
+  },
+  "device_requirements": {
+    "min_cpu": 1,
+    "min_memory": 2
+  }
+}

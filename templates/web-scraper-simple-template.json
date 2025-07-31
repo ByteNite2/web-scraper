@@ -1,0 +1,7 @@
+{
+  "id": "web-scraper-template",
+  "description": "Simple web scraper to find most popular Amazon items",
+  "app": "scraper-engine",
+  "partitioner": "fanout-urls", 
+  "assembler": "data-assembler"
+}
