@@ -6,7 +6,7 @@
   "entrypoint": "main.py",
   "platform": "docker",
   "platform_config": {
-    "container": "python:3.11-slim",
+    "container": "vyomapatel12/python:3.11-slim",
     "requirements": "requirements.txt"
   },
   "device_requirements": {

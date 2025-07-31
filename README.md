@@ -12,7 +12,7 @@ This web scraper pipeline:
 ## 🏗️ Architecture
 
 ```
-URLs → Partitioner → Scraper Apps (parallel) → Assembler → Most Popular Item
+URLs → Partitioner → Scraper Apps (parallel) → Assembler → Most Popular Item 
 ```
 
 ### Components:
