@@ -1,7 +1,35 @@
 {
-  "id": "web-scraper-template",
+  "id": "web-scraper-simple-template",
   "description": "Simple web scraper to find most popular Amazon items",
   "app": "scraper-engine",
   "partitioner": "fanout-urls", 
-  "assembler": "data-assembler"
+  "assembler": "data-assembler",
+  "default_params": {
+    "partitioner": {
+      "app_id": "fanout-urls",
+      "version": "0.2",
+      "parameters": {
+        "urls": [
+          "https://www.amazon.com/s?k=echo+dot&ref=nb_sb_noss",
+          "https://www.amazon.com/s?k=kindle+paperwhite&ref=nb_sb_noss",
+          "https://www.amazon.com/s?k=fire+tv+stick&ref=nb_sb_noss"
+        ],
+        "chunk_size": 1
+      }
+    },
+    "app": {
+      "app_id": "scraper-engine",
+      "version": "0.1",
+      "parameters": {
+        "timeout": 30000,
+        "headless": true,
+        "delay_between_requests": 2
+      }
+    },
+    "assembler": {
+      "app_id": "data-assembler",
+      "version": "0.1",
+      "parameters": {}
+    }
+  }
 }

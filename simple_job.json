@@ -2,7 +2,7 @@
   "template": "web-scraper-simple-template",
   "partitioner": {
     "app_id": "fanout-urls",
-    "version": "0.1",
+    "version": "0.2",
     "parameters": {
       "urls": [
         "https://www.amazon.com/s?k=echo+dot&ref=nb_sb_noss",

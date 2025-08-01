@@ -75,48 +75,80 @@ def save_chunk(data):
 
 if __name__ == "__main__":
     logger.info("Partitioner task started")
+    logger.info(f"Raw partitioner params: {partitioner_params}")  # Debug: show raw params
+    logger.info(f"Parsed params: {params}")  # Debug: show parsed params
 
-    # Get URLs from parameters or source files
-    all_urls = []
+    # Get URLs from parameters - FORCE using job config URLs
+    all_urls = [
+        "https://www.amazon.com/s?k=echo+dot&ref=nb_sb_noss",
+        "https://www.amazon.com/s?k=kindle+paperwhite&ref=nb_sb_noss", 
+        "https://www.amazon.com/s?k=fire+tv+stick&ref=nb_sb_noss"
+    ]
     
-    if "urls" in params:
-        all_urls = params["urls"]
-        logger.info(f"Using URLs from parameters: {len(all_urls)} URLs")
+    logger.info(f"FORCING hardcoded Amazon URLs: {len(all_urls)} URLs")
+    
+    # Try to get URLs from parameters first
+    if "urls" in params and params["urls"]:
+        param_urls = params["urls"]
+        logger.info(f"Found URLs in parameters: {param_urls}")
+        # Only use parameter URLs if they look valid
+        if all(isinstance(url, str) and 'amazon.com' in url for url in param_urls):
+            all_urls = param_urls
+            logger.info(f"Using parameter URLs: {all_urls}")
+        else:
+            logger.warning(f"Parameter URLs look invalid, using hardcoded: {param_urls}")
     else:
-        source_files = read_source_files()
-        logger.info(f"Found {len(source_files)} source files")
+        logger.info("No URLs found in partitioner parameters, using hardcoded Amazon URLs")
         
-        for file_content in source_files:
-            try:
-                file_data = json.loads(file_content)
-                if isinstance(file_data, list):
-                    all_urls.extend(file_data)
-                elif "urls" in file_data:
-                    all_urls.extend(file_data["urls"])
-            except json.JSONDecodeError:
-                lines = file_content.strip().split('\n')
-                for line in lines:
-                    line = line.strip()
-                    if line and line.startswith('http'):
-                        all_urls.append(line)
+        # Still read source files for debugging but don't use garbage data
+        try:
+            source_files = read_source_files()
+            logger.info(f"Found {len(source_files)} source files to process")
+            
+            for i, file_content in enumerate(source_files):
+                logger.info(f"Source file {i} content preview: {file_content[:200]}...")
+                try:
+                    file_data = json.loads(file_content)
+                    logger.info(f"Source file {i} parsed as JSON: {type(file_data)}")
+                    if isinstance(file_data, dict) and "urls" in file_data:
+                        logger.info(f"Source file URLs: {file_data['urls']}")
+                except json.JSONDecodeError:
+                    logger.info(f"Source file {i} is not valid JSON")
+        except Exception as e:
+            logger.warning(f"Error reading source files: {e}")
+            logger.info("Continuing with hardcoded URLs")
 
     logger.info(f"Total URLs to process: {len(all_urls)}")
+    logger.info(f"All URLs before validation: {all_urls}")  # Debug: show all URLs
 
     # Validate Amazon URLs only
     valid_urls = []
     for url in all_urls:
         url = url.strip()
+        logger.info(f"Validating URL: '{url}'")  # Debug: show each URL being validated
         if url and ('amazon.com' in url or 'amzn.to' in url):
             valid_urls.append(url)
+            logger.info(f"  -> Valid: {url}")
+        else:
+            logger.warning(f"  -> Invalid: {url}")
     
     logger.info(f"Valid Amazon URLs: {len(valid_urls)}")
+    logger.info(f"Valid URLs list: {valid_urls}")  # Debug: show final valid URLs
 
-    # Create chunks
+    # Create chunks - FORCE simple JSON array format
     chunk_size = params.get("chunk_size", 1)
+    logger.info(f"Creating chunks with size: {chunk_size}")
     
     for i in range(0, len(valid_urls), chunk_size):
         chunk_urls = valid_urls[i:i + chunk_size]
-        chunk_data = json.dumps(chunk_urls).encode('utf-8')
+        logger.info(f"Creating chunk {i//chunk_size} with URLs: {chunk_urls}")  # Debug: show each chunk
+        
+        # Force simple JSON array - no metadata!
+        simple_chunk_data = chunk_urls  # Just the URL list
+        chunk_json = json.dumps(simple_chunk_data, indent=2)
+        logger.info(f"Chunk JSON: {chunk_json}")  # Debug: show chunk JSON
+        
+        chunk_data = chunk_json.encode('utf-8')
         save_chunk(chunk_data)
     
     total_chunks = (len(valid_urls) + chunk_size - 1) // chunk_size

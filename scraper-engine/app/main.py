@@ -16,20 +16,28 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Environment variables (set by ByteNite platform)
-chunks_dir = os.getenv("CHUNKS_DIR")
-if not chunks_dir:
-    logger.error("Environment variable 'CHUNKS_DIR' is not set. This app must be run within ByteNite framework.")
+# ByteNite provides TASK_DIR instead of CHUNKS_DIR, and CHUNK_NUMBER for the specific chunk
+task_dir = os.getenv("TASK_DIR")
+chunk_number = os.getenv("CHUNK_NUMBER")
+
+if not task_dir:
+    logger.error("Environment variable 'TASK_DIR' is not set. This app must be run within ByteNite framework.")
     logger.info("Available environment variables:")
     for key, value in os.environ.items():
         if 'BYTE' in key.upper() or 'CHUNK' in key.upper() or 'TASK' in key.upper():
             logger.info(f"  {key}={value}")
-    raise ValueError("Environment variable 'CHUNKS_DIR' is not set.")
+    raise ValueError("Environment variable 'TASK_DIR' is not set.")
 
-if not os.path.isdir(chunks_dir):
-    logger.error(f"Chunks directory '{chunks_dir}' does not exist or is not accessible.")
+if not os.path.isdir(task_dir):
+    logger.error(f"Task directory '{task_dir}' does not exist or is not accessible.")
     logger.info(f"Current working directory: {os.getcwd()}")
     logger.info(f"Directory contents: {os.listdir('.')}")
-    raise ValueError(f"Chunks directory '{chunks_dir}' does not exist or is not accessible.")
+    raise ValueError(f"Task directory '{task_dir}' does not exist or is not accessible.")
+
+# Look for chunk data in the task directory
+chunks_dir = task_dir  # Use task_dir as chunks_dir
+if chunk_number is not None:
+    logger.info(f"Processing chunk number: {chunk_number}")
 
 task_results_dir = os.getenv("TASK_RESULTS_DIR")
 if not task_results_dir:
@@ -174,26 +182,95 @@ async def scrape_amazon_search(url, params):
             }]
 
 async def process_chunks():
-    """Process all chunk files and scrape URLs."""
-    chunk_files = [f for f in os.listdir(chunks_dir) if f.startswith('data_') and f.endswith('.bin')]
+    """Process chunk files based on ByteNite's chunk assignment."""
     
-    if not chunk_files:
-        logger.error("No chunk files found!")
-        return
-    
-    logger.info(f"Processing {len(chunk_files)} chunk files")
-    
-    for chunk_file in chunk_files:
+    # In ByteNite, each container gets a specific chunk number to process
+    if chunk_number is not None:
+        # Process the specific chunk assigned by ByteNite
+        chunk_file = f"data_{chunk_number}.bin"
         chunk_path = os.path.join(chunks_dir, chunk_file)
         
-        # Read chunk data
-        with open(chunk_path, 'rb') as f:
-            urls = json.loads(f.read().decode('utf-8'))
+        if not os.path.exists(chunk_path):
+            # Try alternative naming patterns
+            possible_files = [
+                f"chunk_{chunk_number}.bin",
+                f"data_{chunk_number}.json",
+                f"chunk_{chunk_number}.json"
+            ]
+            
+            found_file = None
+            for possible_file in possible_files:
+                possible_path = os.path.join(chunks_dir, possible_file)
+                if os.path.exists(possible_path):
+                    found_file = possible_path
+                    chunk_file = possible_file
+                    break
+            
+            if not found_file:
+                # List all files in the directory to help debug
+                logger.error(f"Chunk file not found. Looking for chunk {chunk_number}")
+                logger.info(f"Task directory contents: {os.listdir(chunks_dir)}")
+                
+                # Try to process any available chunk file
+                available_files = [f for f in os.listdir(chunks_dir) if f.endswith(('.bin', '.json'))]
+                if available_files:
+                    chunk_file = available_files[0]
+                    chunk_path = os.path.join(chunks_dir, chunk_file)
+                    logger.info(f"Using available file: {chunk_file}")
+                else:
+                    logger.error("No chunk files found!")
+                    return
+            else:
+                chunk_path = found_file
         
-        logger.info(f"Processing chunk {chunk_file} with {len(urls)} URLs")
+        logger.info(f"Processing assigned chunk: {chunk_file}")
+        
+        # Read chunk data
+        try:
+            with open(chunk_path, 'rb') as f:
+                content = f.read().decode('utf-8')
+                logger.info(f"Raw chunk content: {content[:200]}...")  # Debug: show first 200 chars
+                data = json.loads(content)
+                logger.info(f"Parsed data type: {type(data)}, content: {data}")  # Debug: show parsed content
+                
+                # Handle different data formats
+                if isinstance(data, list):
+                    # Simple list of URLs
+                    urls = data
+                elif isinstance(data, dict) and "urls" in data:
+                    # Dictionary with URLs key
+                    urls = data["urls"]
+                    logger.info(f"Extracted URLs from dict: {urls}")
+                else:
+                    logger.error(f"Unexpected data format: {type(data)}")
+                    return
+                
+        except Exception as e:
+            logger.error(f"Error reading chunk file {chunk_path}: {e}")
+            return
+        
+        # Ensure urls is a list
+        if not isinstance(urls, list):
+            logger.error(f"Expected list of URLs, got {type(urls)}: {urls}")
+            return
+        
+        # Validate URLs - filter out invalid ones
+        valid_urls = []
+        for url in urls:
+            url = str(url).strip()
+            if url and ('amazon.com' in url or 'amzn.to' in url) and url.startswith('http'):
+                valid_urls.append(url)
+            else:
+                logger.warning(f"Skipping invalid URL: {url}")
+        
+        if not valid_urls:
+            logger.error("No valid Amazon URLs found in chunk!")
+            return
+        
+        logger.info(f"Processing chunk {chunk_number} with {len(valid_urls)} valid URLs")
         
         scraped_items = []
-        for url in urls:
+        for url in valid_urls:
             logger.info(f"Scraping: {url}")
             
             items = await scrape_amazon_search(url, params)
@@ -205,10 +282,9 @@ async def process_chunks():
                 await asyncio.sleep(delay)
         
         # Save results
-        chunk_number = chunk_file.replace('data_', '').replace('.bin', '')
         result = {
             "chunk_number": chunk_number,
-            "urls_processed": len(urls),
+            "urls_processed": len(valid_urls),
             "scraped_items": scraped_items,
             "success_count": len([item for item in scraped_items if not item.get("error")]),
             "error_count": len([item for item in scraped_items if item.get("error")])
@@ -219,6 +295,54 @@ async def process_chunks():
             json.dump(result, f, indent=2)
         
         logger.info(f"Chunk {chunk_number}: {result['success_count']} success, {result['error_count']} errors")
+        
+    else:
+        # Fallback: process all chunks (legacy mode)
+        logger.info("No CHUNK_NUMBER specified, processing all available chunks")
+        chunk_files = [f for f in os.listdir(chunks_dir) if f.startswith('data_') and f.endswith('.bin')]
+        
+        if not chunk_files:
+            logger.error("No chunk files found!")
+            return
+        
+        logger.info(f"Processing {len(chunk_files)} chunk files")
+        
+        for chunk_file in chunk_files:
+            chunk_path = os.path.join(chunks_dir, chunk_file)
+            
+            # Read chunk data
+            with open(chunk_path, 'rb') as f:
+                urls = json.loads(f.read().decode('utf-8'))
+            
+            logger.info(f"Processing chunk {chunk_file} with {len(urls)} URLs")
+            
+            scraped_items = []
+            for url in urls:
+                logger.info(f"Scraping: {url}")
+                
+                items = await scrape_amazon_search(url, params)
+                scraped_items.extend(items)
+                
+                # Respect delay between requests
+                delay = params.get("delay_between_requests", 2)
+                if delay > 0:
+                    await asyncio.sleep(delay)
+            
+            # Save results
+            chunk_number_extracted = chunk_file.replace('data_', '').replace('.bin', '')
+            result = {
+                "chunk_number": chunk_number_extracted,
+                "urls_processed": len(urls),
+                "scraped_items": scraped_items,
+                "success_count": len([item for item in scraped_items if not item.get("error")]),
+                "error_count": len([item for item in scraped_items if item.get("error")])
+            }
+            
+            result_file = os.path.join(task_results_dir, f"chunk_{chunk_number_extracted}_results.json")
+            with open(result_file, 'w') as f:
+                json.dump(result, f, indent=2)
+            
+            logger.info(f"Chunk {chunk_number_extracted}: {result['success_count']} success, {result['error_count']} errors")
 
 if __name__ == "__main__":
     logger.info("Web scraper app started")
