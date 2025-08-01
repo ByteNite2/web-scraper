@@ -18,23 +18,38 @@ logger = logging.getLogger(__name__)
 # Environment variables (set by ByteNite platform)
 chunks_dir = os.getenv("CHUNKS_DIR")
 if not chunks_dir:
+    logger.error("Environment variable 'CHUNKS_DIR' is not set. This app must be run within ByteNite framework.")
+    logger.info("Available environment variables:")
+    for key, value in os.environ.items():
+        if 'BYTE' in key.upper() or 'CHUNK' in key.upper() or 'TASK' in key.upper():
+            logger.info(f"  {key}={value}")
     raise ValueError("Environment variable 'CHUNKS_DIR' is not set.")
+
 if not os.path.isdir(chunks_dir):
+    logger.error(f"Chunks directory '{chunks_dir}' does not exist or is not accessible.")
+    logger.info(f"Current working directory: {os.getcwd()}")
+    logger.info(f"Directory contents: {os.listdir('.')}")
     raise ValueError(f"Chunks directory '{chunks_dir}' does not exist or is not accessible.")
 
 task_results_dir = os.getenv("TASK_RESULTS_DIR")
 if not task_results_dir:
+    logger.error("Environment variable 'TASK_RESULTS_DIR' is not set.")
     raise ValueError("Environment variable 'TASK_RESULTS_DIR' is not set.")
+
 if not os.path.isdir(task_results_dir):
+    logger.error(f"Task results directory '{task_results_dir}' does not exist or is not accessible.")
     raise ValueError(f"Task results directory '{task_results_dir}' does not exist or is not accessible.")
 
 # App parameters
 try:
     app_params = os.getenv("APP_PARAMS")
     if not app_params:
+        logger.error("Environment variable 'APP_PARAMS' is not set.")
         raise ValueError("Environment variable 'APP_PARAMS' is not set.")
     params = json.loads(app_params)
-except json.JSONDecodeError:
+    logger.info(f"App parameters loaded: {params}")
+except json.JSONDecodeError as e:
+    logger.error(f"Environment variable 'APP_PARAMS' contains invalid JSON: {e}")
     raise ValueError("Environment variable 'APP_PARAMS' contains invalid JSON.")
 
 async def scrape_amazon_search(url, params):

@@ -6,8 +6,7 @@
   "entrypoint": "main.py",
   "platform": "docker",
   "platform_config": {
-    "container": "vyomapatel12/python:3.11-slim",
-    "requirements": "requirements.txt"
+    "container": "vyomapatel12/web-scraper:v1.1"
   },
   "device_requirements": {
     "min_cpu": 2,

@@ -33,6 +33,32 @@ pip install playwright
 python3 test_final.py
 ```
 
+### 🐳 Docker Setup
+
+The scraper-engine component uses a custom Docker image with Playwright pre-installed:
+
+#### Building and Pushing the Docker Image
+```bash
+# Navigate to scraper-engine directory
+cd scraper-engine
+
+# Build the Docker image
+docker build -t vyomapatel12/web-scraper:v1.0 .
+
+# Push to Docker Hub (requires login)
+docker login
+docker push vyomapatel12/web-scraper:v1.0
+```
+
+The manifest.json automatically references this image:
+```json
+{
+  "platform_config": {
+    "container": "vyomapatel12/web-scraper:v1.0"
+  }
+}
+```
+
 ### Deploy to ByteNite Staging
 ```bash
 # Authenticate with staging
@@ -163,6 +189,104 @@ Look for your apps in the list with "active" status:
 - `data-assembler` - active
 - `scraper-engine` - active  
 - `fanout-urls` - active
+
+## 🎮 Running Jobs on ByteNite Staging
+
+Once your apps are deployed and active, you can run web scraping jobs using the template system.
+
+### Job Parameters
+
+The following JSON parameters are used for each component:
+
+#### **Partitioner (fanout-urls)**
+```json
+{
+  "app_id": "fanout-urls",
+  "version": "0.1",
+  "parameters": {
+    "urls": [
+      "https://www.amazon.com/s?k=echo+dot&ref=nb_sb_noss",
+      "https://www.amazon.com/s?k=kindle+paperwhite&ref=nb_sb_noss",
+      "https://www.amazon.com/s?k=fire+tv+stick&ref=nb_sb_noss"
+    ],
+    "chunk_size": 1
+  }
+}
+```
+
+#### **App (scraper-engine)**
+```json
+{
+  "app_id": "scraper-engine", 
+  "version": "0.1",
+  "parameters": {
+    "timeout": 30000,
+    "headless": true,
+    "delay_between_requests": 2
+  }
+}
+```
+
+#### **Assembler (data-assembler)**
+```json
+{
+  "app_id": "data-assembler",
+  "version": "0.1", 
+  "parameters": {}
+}
+```
+
+### Complete Job Configuration
+
+Your `simple_job.json` should look like this:
+
+```json
+{
+  "template": "web-scraper-simple-template",
+  "partitioner": {
+    "app_id": "fanout-urls",
+    "version": "0.1",
+    "parameters": {
+      "urls": [
+        "https://www.amazon.com/s?k=echo+dot&ref=nb_sb_noss",
+        "https://www.amazon.com/s?k=kindle+paperwhite&ref=nb_sb_noss", 
+        "https://www.amazon.com/s?k=fire+tv+stick&ref=nb_sb_noss"
+      ],
+      "chunk_size": 1
+    }
+  },
+  "app": {
+    "app_id": "scraper-engine",
+    "version": "0.1",
+    "parameters": {
+      "timeout": 30000,
+      "headless": true,
+      "delay_between_requests": 2
+    }
+  },
+  "assembler": {
+    "app_id": "data-assembler",
+    "version": "0.1",
+    "parameters": {}
+  }
+}
+```
+
+### Parameter Customization
+
+**Fixed Parameters (keep the same):**
+- `app_id` and `version` - Identify specific app versions
+- `headless: true` - For production scraping
+- `chunk_size: 1` - Optimal for parallel processing
+
+**Configurable Parameters (adjust as needed):**
+- **`urls`** - Change to scrape different Amazon products
+- **`timeout`** - Increase for slower connections (default: 30000ms)
+- **`delay_between_requests`** - Adjust scraping speed (default: 2s)
+
+### Running a Job
+
+*Note: Job execution commands will be added once the ByteNite CLI command structure is confirmed.*
 
 ---
 
