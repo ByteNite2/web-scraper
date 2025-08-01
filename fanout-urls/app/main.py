@@ -78,42 +78,35 @@ if __name__ == "__main__":
     logger.info(f"Raw partitioner params: {partitioner_params}")  # Debug: show raw params
     logger.info(f"Parsed params: {params}")  # Debug: show parsed params
 
-    # Get URLs from parameters - FORCE using job config URLs
+    # HARDCODED Amazon URLs - no external files needed
     all_urls = [
         "https://www.amazon.com/s?k=echo+dot&ref=nb_sb_noss",
         "https://www.amazon.com/s?k=kindle+paperwhite&ref=nb_sb_noss", 
         "https://www.amazon.com/s?k=fire+tv+stick&ref=nb_sb_noss"
     ]
     
-    logger.info(f"FORCING hardcoded Amazon URLs: {len(all_urls)} URLs")
+    logger.info(f"Using hardcoded Amazon URLs: {len(all_urls)} URLs")
+    logger.info(f"URLs: {all_urls}")
     
-    # Try to get URLs from parameters first
+    # Try to get URLs from parameters as backup (but prefer hardcoded)
     if "urls" in params and params["urls"]:
         param_urls = params["urls"]
         logger.info(f"Found URLs in parameters: {param_urls}")
-        # Only use parameter URLs if they look valid
+        # Only use parameter URLs if they look valid AND we want to override hardcoded
         if all(isinstance(url, str) and 'amazon.com' in url for url in param_urls):
-            all_urls = param_urls
-            logger.info(f"Using parameter URLs: {all_urls}")
+            logger.info(f"Parameter URLs are valid but using hardcoded URLs instead")
         else:
-            logger.warning(f"Parameter URLs look invalid, using hardcoded: {param_urls}")
+            logger.warning(f"Parameter URLs look invalid: {param_urls}")
     else:
-        logger.info("No URLs found in partitioner parameters, using hardcoded Amazon URLs")
+        logger.info("No URLs found in partitioner parameters - using hardcoded URLs")
         
-        # Still read source files for debugging but don't use garbage data
+        # Still read source files for debugging but never use them
         try:
             source_files = read_source_files()
-            logger.info(f"Found {len(source_files)} source files to process")
+            logger.info(f"Found {len(source_files)} source files (ignoring content)")
             
             for i, file_content in enumerate(source_files):
-                logger.info(f"Source file {i} content preview: {file_content[:200]}...")
-                try:
-                    file_data = json.loads(file_content)
-                    logger.info(f"Source file {i} parsed as JSON: {type(file_data)}")
-                    if isinstance(file_data, dict) and "urls" in file_data:
-                        logger.info(f"Source file URLs: {file_data['urls']}")
-                except json.JSONDecodeError:
-                    logger.info(f"Source file {i} is not valid JSON")
+                logger.info(f"Source file {i} content preview (IGNORED): {file_content[:100]}...")
         except Exception as e:
             logger.warning(f"Error reading source files: {e}")
             logger.info("Continuing with hardcoded URLs")

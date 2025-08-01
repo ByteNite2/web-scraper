@@ -7,7 +7,7 @@
   "default_params": {
     "partitioner": {
       "app_id": "fanout-urls",
-      "version": "0.2",
+      "version": "0.4",
       "parameters": {
         "urls": [
           "https://www.amazon.com/s?k=echo+dot&ref=nb_sb_noss",
