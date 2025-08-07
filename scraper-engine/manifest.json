@@ -1,6 +1,6 @@
 {
   "name": "scraper-engine",
-  "version": "0.1",
+  "version": "0.6",
   "type": "app",
   "description": "E-commerce web scraping app using Playwright for product demand analysis",
   "entrypoint": "main.py",

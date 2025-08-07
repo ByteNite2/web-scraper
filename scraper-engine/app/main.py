@@ -88,27 +88,40 @@ async def scrape_amazon_search(url, params):
             for i in range(min(10, await product_elements.count())):
                 product = product_elements.nth(i)
                 
-                # Extract title using improved method
+                # Enhanced title extraction with more fallbacks
                 title = "Unknown"
                 try:
-                    all_text = await product.text_content()
-                    if all_text:
-                        # Look for product title patterns
-                        patterns = [
-                            r'(Echo [^,]+(?:, [^,]+)*)',
-                            r'(Kindle [^,]+(?:, [^,]+)*)', 
-                            r'(Fire [^,]+(?:, [^,]+)*)',
-                            r'(Amazon [^,]+(?:, [^,]+)*)'
-                        ]
-                        for pattern in patterns:
-                            match = re.search(pattern, all_text)
-                            if match:
-                                title = match.group(1).strip()
-                                # Clean up title (remove ratings, etc.)
-                                title = re.sub(r'\s+\d+\.\d+\s+out\s+of\s+\d+.*', '', title)
+                    # Try multiple selectors in order of specificity
+                    selectors_to_try = [
+                        'h2 a span.a-text-normal',
+                        'h2 a span',
+                        'h2 span.a-text-normal', 
+                        'h2 .a-link-normal span',
+                        '[data-cy="title-recipe-full"] span',
+                        'h2 .s-link-style span',
+                        '.s-title-instructions-style span',
+                        'span.a-size-medium.a-color-base.a-text-normal',
+                        'span.a-size-base-plus',
+                        '.a-size-mini span',
+                        # Even broader fallbacks
+                        'h2 a',
+                        'h2',
+                        '.s-size-mini .a-link-normal'
+                    ]
+                    
+                    for selector in selectors_to_try:
+                        title_elem = product.locator(selector).first
+                        if await title_elem.count() > 0:
+                            title_text = await title_elem.text_content()
+                            if title_text and title_text.strip():
+                                title = title_text.strip()
                                 break
-                except:
-                    pass
+                                
+                except Exception as e:
+                    logger.warning(f"Failed to extract title: {e}")
+
+
+
                 
                 # Extract price
                 price = "Unknown"
@@ -125,6 +138,8 @@ async def scrape_amazon_search(url, params):
                                 price_numeric = float(price_match.group(1))
                 except:
                     pass
+
+                logger.info(f"Scraped product name: '{title}' - Price: {price}")
                 
                 # Extract purchase/sales data
                 purchases = 0

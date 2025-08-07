@@ -94,7 +94,8 @@ if __name__ == "__main__":
         logger.info(f"Found URLs in parameters: {param_urls}")
         # Only use parameter URLs if they look valid AND we want to override hardcoded
         if all(isinstance(url, str) and 'amazon.com' in url for url in param_urls):
-            logger.info(f"Parameter URLs are valid but using hardcoded URLs instead")
+            all_urls = param_urls
+            logger.info(f"Parameter URLs are valid and will be used")
         else:
             logger.warning(f"Parameter URLs look invalid: {param_urls}")
     else:

@@ -1,6 +1,6 @@
 {
   "name": "fanout-urls",
-  "version": "0.4", 
+  "version": "0.5", 
   "type": "partitioner",
   "description": "A partitioning engine that splits URL lists into chunks for parallel scraping",
   "entrypoint": "main.py",
