@@ -1,13 +1,13 @@
 {
-  "id": "web-scraper-simple-template",
-  "description": "Simple web scraper to find most popular Amazon items",
+  "id": "web-scraper-dibek-fixed",
+  "description": "Web scraper with Dibek's fixes - v0.5 partitioner + v0.6 scraper",
   "app": "scraper-engine",
   "partitioner": "fanout-urls", 
   "assembler": "data-assembler",
   "default_params": {
     "partitioner": {
       "app_id": "fanout-urls",
-      "version": "0.4",
+      "version": "0.5",
       "parameters": {
         "urls": [
           "https://www.amazon.com/s?k=echo+dot&ref=nb_sb_noss",
@@ -19,7 +19,7 @@
     },
     "app": {
       "app_id": "scraper-engine",
-      "version": "0.1",
+      "version": "0.6",
       "parameters": {
         "timeout": 30000,
         "headless": true,
@@ -28,7 +28,7 @@
     },
     "assembler": {
       "app_id": "data-assembler",
-      "version": "0.1",
+      "version": "0.2",
       "parameters": {}
     }
   }

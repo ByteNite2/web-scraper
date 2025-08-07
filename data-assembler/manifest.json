@@ -1,6 +1,6 @@
 {
   "name": "data-assembler",
-  "version": "0.1",
+  "version": "0.2",
   "type": "assembler", 
   "description": "An assembler engine that combines scraped data from multiple chunks into final output",
   "entrypoint": "main.py",

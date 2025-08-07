@@ -1,0 +1,19 @@
+{
+  "appConfig": {
+    "fanout-urls": {
+      "urls": [
+        "https://www.amazon.com/s?k=bluetooth+speakers",
+        "https://www.amazon.com/s?k=gaming+mouse"
+      ],
+      "chunk_size": 1
+    },
+    "scraper-engine": {
+      "headless": true,
+      "timeout": 30000,
+      "delay_between_requests": 2
+    },
+    "data-assembler": {
+      "output_format": "json"
+    }
+  }
+}
