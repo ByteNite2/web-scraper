@@ -77,6 +77,7 @@ def find_cheapest_item(all_items):
     return cheapest, min_price
 
 if __name__ == "__main__":
+    logger.info("=== DATA-ASSEMBLER V0.3 WITH PRICE ANALYSIS STARTING ===")
     logger.info("Assembler task started")
 
     # Read all result files
